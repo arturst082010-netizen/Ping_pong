@@ -2,6 +2,55 @@ import pygame
  
 
 pygame.init()
+from random import randint
+from pygame import *
+class GameSprite(sprite.Sprite):
+    def __init__(self, player_image, player_x, player_y, player_speed, size_x, size_y):
+        super().__init__()
+        self.image = transform.scale(image.load(player_image), (size_x, size_y))
+        self.speed = player_speed
+        self.rect = self.image.get_rect()
+        self.rect.x = player_x
+        self.rect.y = player_y
+    def reset(self):
+        window.blit(self.image, (self.rect.x, self.rect.y))
+
+class Player(GameSprite):
+    def __init__(self):
+        super().__init__('rocket.png', 200, 400, 7, 67, 67)
+    def update(self):
+        keys = key.get_pressed()
+        if (keys[K_a] or keys[K_LEFT]) and self.rect.x > 5:
+            self.rect.x -= self.speed
+        if (keys[K_d] or  keys[K_RIGHT])  and self.rect.x < len_size - 70:
+            self.rect.x += self.speed
+    #     if (keys[K_w] or keys[K_UP]) and self.rect.y > 5:
+    #         self.rect.y -= self.speed
+    #     if (keys[K_s] or keys[K_DOWN]) and self.rect.y < width_size - 70:
+    #         self.rect.y += self.speed
+    def fire(self):
+        keys = key.get_pressed()
+        if (keys[K_SPACE]):
+            bullet = Bullet(self.rect.centerx, self.rect.top)
+            bullets.add(bullet)
+            fire.play()
+    def set_speed(self, level):
+        speeds = [5, 6, 7, 8, 67, 76]
+        self.speed = speeds[level]
+            
+
+class Enemy(GameSprite):
+    def __init__(self):
+        super().__init__('ufo.png', randint(0, 630), 0, randint(1, 3), 70, 40) 
+    def update(self):
+        if self.rect.y <= width_size:
+            self.rect.y += self.speed
+        else:
+            global miss_num
+            self.rect.y = 0
+            self.rect.x = randint(0, 650)
+            self.speed = randint(1, 3)
+            miss_num += 1
 
 class Area():
 
@@ -31,7 +80,7 @@ class Label(Area):
         self.fill()
         window.blit(self.image,(self.rect.x + shift_x, self.rect.y + shift_y))
 class Picture(Area):
-    def __init__(self, filename, x=0, y=0, width=10, height=10):
+    def __init__(self, filename, x=0, y=0, width=10, height=10,speed = 4):
         super().__init__(x=x, y=y, width=width, height=height, color=None)
         self.image = pygame.image.load(filename)
 
@@ -39,19 +88,86 @@ class Picture(Area):
         window.blit(self.image, (self.rect.x, self.rect.y))
     def update(self):
         keys = key.get_pressed()
-        if (keys[K_w] or keys[K_LEFT]) and self.rect.x > 5:
+        if (keys[K_w] or keys[K_UP]) and self.rect.x > 5 and self.rect.y > 10:
             self.rect.x -= self.speed
-        if (keys[K_s] or  keys[K_RIGHT])  and self.rect.x < 700 - 70:
+        if (keys[K_s] or  keys[K_DOWN])  and self.rect.x < 700 - 70 and self.rect.y < width_size - 120:
             self.rect.x += self.speed
- 
+class Ball(sprite.Sprite):
+    def __init__(self, x, y, width, height, picture):
+        super().__init__()
+        self.image = pygame.transform.scale(
+            pygame.image.load(picture), (width, height)
+        )
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y 
+    def draw(self):
+        window.blit(self.image, (self.rect.x, self.rect.y))
+class Wall(sprite.Sprite):
+    def __init__(self, wall_x, wall_y, width, height, color1, color2, color3, speed):
+        super().__init__()
+        self.color1 = color1
+        self.color2 = color2
+        self.color3 = color3
+        self.width = width
+        self.height = height
+        self.image = Surface((self.width, self.height))
+        self.image.fill((color1, color2, color3))
+        self.rect = self.image.get_rect()
+        self.rect.x = wall_x
+        self.rect.y = wall_y
+        self.speed = speed
+    def draw_wall(self):
+        window.blit(self.image, (self.rect.x, self.rect.y)) 
+    def update(self):
+        keys = key.get_pressed()
+        if (keys[K_w] or keys[K_LEFT]) and self.rect.y > 10:
+            self.rect.y -= self.speed
+        if (keys[K_s] or  keys[K_RIGHT])  and self.rect.y < width_size - 120:
+            self.rect.y += self.speed
+class Enemy_wall(sprite.Sprite) :
+    def __init__(self, wall_x, wall_y, width, height, color1, color2, color3, speed):
+        super().__init__()
+        self.color1 = color1
+        self.color2 = color2
+        self.color3 = color3
+        self.width = width
+        self.height = height
+        self.image = Surface((self.width, self.height))
+        self.image.fill((color1, color2, color3))
+        self.rect = self.image.get_rect()
+        self.rect.x = wall_x
+        self.rect.y = wall_y
+        self.speed = speed
+        self.direction = 'right'
+        self.road = (0, 380)
+    def draw_wall(self):
+        window.blit(self.image, (self.rect.x, self.rect.y)) 
+    def collidepoint(self, x, y):
+        return self.rect.collidepoint(x, y)
+    def colliderect(self, rect):
+        return self.rect.colliderect(rect)
+    def update(self):
+        if self.rect.y <= self.road[0]:
+            self.direction = 'right'
+        if self.rect.y > self.road[1]:
+            self.direction = 'left'
+        if self.direction == 'right':
+            self.rect.y += self.speed
+        else:
+            self.rect.y -= self.speed
+
 back = (200, 255, 255)
 window = pygame.display.set_mode((700, 500))
 image = pygame.transform.scale(pygame.image.load('52.jpg'), (700, 500))
-#window.fill(image)
+
+len_size = 700
+width_size = 500
 clock = pygame.time.Clock()
- 
+wall1 = Wall(20, 190, 15, 60, 58, 219, 0, 15)
+wall2 = Enemy_wall(650, 190, 15, 60, 58, 219, 0, 50)
 racket_x = 1
-racket_y = 5
+racket_y = 1
 game = True
 
 move_right = False
@@ -61,10 +177,10 @@ racket_speed = 6
  
 speed_x = 4
 speed_y = 4
- 
-ball = Picture('ball.png', 160, 200, 5, 5)
+ball = Ball(326, 200, 50, 50, 'ball.png')
 
-racket = Picture('52.jpg', racket_x, racket_y, 7, 5)
+
+racket = Picture('52.jpg', racket_x, racket_y, 1, 1)
  
 start_x = 5
 start_y = 5
@@ -72,20 +188,9 @@ start_y = 5
 count = 9
 monsters = []
 
-# for i in range(3):
-#     x = start_x + (27.5 * i) 
-#     y = start_y + (55 * i)
-#     for j in range(count):
-#         monster = Picture('enemy.png', x, y, 50, 50)
-#         monsters.append(monster)
-#         x += 55
-#     count -= 1
  
 while game:
 
-    ball.fill()
-    #racket.fill()
- 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             game = False
@@ -116,29 +221,15 @@ while game:
         speed_x *= -1
  
 
-    if ball.colliderect(racket.rect):
+    if ball.colliderect():
         speed_y *= -1
 
-    # if ball.rect.y > (racket_y + 20):
-    #     game_end = Label(150, 150, 50, 50, back)
-    #     game_end.set_text('YOU LOSE!', 60, (255, 0, 0))
-    #     game_end.draw(10,10)
-    #     game = False
- 
-    # if len(monsters) == 0:
-    #     game_end = Label(150, 150, 50, 50, back)
-    #     game_end.set_text('YOU WIN!', 60, (0, 200, 0))
-    #     game_end.draw(10,10)
-    #     game = False
- 
-    # for monster in monsters:
-    #     monster.draw()
-    #     if monster.colliderect(ball.rect):
-    #         monsters.remove(monster)
-    #         monster.fill()
-    #         speed_y *= -1 
     window.blit(image, (0, 0))
     ball.draw()
-    #racket.draw()
+    ball.update()
+    wall1.draw_wall()
+    wall2.draw_wall()
+    wall1.update()
+    wall2.update()
     pygame.display.update()
     clock.tick(40)
