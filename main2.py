@@ -125,6 +125,8 @@ class Wall(sprite.Sprite):
             self.rect.y -= self.speed
         if (keys[K_s] or  keys[K_RIGHT])  and self.rect.y < width_size - 120:
             self.rect.y += self.speed
+    def colliderect(self, rect):
+        return self.rect.colliderect(rect)
 class Enemy_wall(sprite.Sprite) :
     def __init__(self, wall_x, wall_y, width, height, color1, color2, color3, speed):
         super().__init__()
@@ -175,8 +177,8 @@ move_left = False
  
 racket_speed = 6
  
-speed_x = 4
-speed_y = 4
+speed_x = 10
+speed_y = 10
 ball = Ball(326, 200, 50, 50, 'ball.png')
 
 
@@ -188,12 +190,30 @@ start_y = 5
 count = 9
 monsters = []
 
- 
-while game:
-
+font.init()
+font = font.Font(None, 50)
+score_num = 0
+score_num2 = 0
+run = True 
+while run:
+    score = font.render(
+                'Счет: ' + str(score_num), True, (0, 0, 0)
+            )
+    score2 = font.render(
+                'Счет: ' + str(score_num2), True, (0, 0, 0)
+            )
+    win = font.render(
+                'Победил игрок!', True, (255, 0, 0)
+            )
+    lose = font.render(
+                'Победил робот!', True, (255, 0, 0)
+            )
+    restart = font.render(
+                'Если хотите начать заново, нажмите  - r', True, (255, 0, 0)
+            )
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            game = False
+            run = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_LEFT:
                 move_left = True
@@ -204,32 +224,65 @@ while game:
                 move_left = False
             if event.key == pygame.K_RIGHT:
                 move_right = False
+    if game:
 
-    if move_left:
-        racket.rect.x -= racket_speed
-    if move_right:
-        racket.rect.x += racket_speed
+        if move_left:
+           racket.rect.x -= racket_speed
+        if move_right:
+            racket.rect.x += racket_speed
  
 
-    ball.rect.x += speed_x
-    ball.rect.y += speed_y
+        ball.rect.x += speed_x
+        ball.rect.y += speed_y
  
 
-    if ball.rect.y < 0:
-        speed_y *= -1
-    if ball.rect.x < 0 or ball.rect.x > 450:
-        speed_x *= -1
- 
+        if ball.rect.y < 0 or ball.rect.y > width_size - 120:
+            speed_y *= -1
+        if ball.rect.x < 0:
+            speed_x *= -1
+            score_num2 += 1
+            ball.rect.x = 326
+            ball.rect.y = 200 
 
-    if ball.colliderect():
-        speed_y *= -1
+        if wall2.colliderect(ball) or wall1.colliderect(ball):
+            speed_x *= -1
 
+        if ball.rect.x > len_size - 50:
+            score_num += 1
+            speed_x *= -1
+            ball.rect.x = 326
+            ball.rect.y = 200 
+    
     window.blit(image, (0, 0))
+    window.blit(score, (10, 20))
+    window.blit(score2, (570, 20))
     ball.draw()
     ball.update()
     wall1.draw_wall()
     wall2.draw_wall()
     wall1.update()
     wall2.update()
+
+    if score_num >= 3:
+        window.blit(win, (326, 200))
+        game = False
+        window.blit(restart, (15, 320))
+        keys = key.get_pressed()
+        if keys[K_r]:
+            score_num = 0
+            score_num2 = 0
+            game = True
+
+
+    if score_num2 >=3:
+        window.blit(lose, (326, 200))
+        game = False
+        window.blit(restart, (15, 320))
+        keys = key.get_pressed()
+        if keys[K_r]:
+            score_num = 0
+            score_num2 = 0
+            game = True
+
     pygame.display.update()
     clock.tick(40)
